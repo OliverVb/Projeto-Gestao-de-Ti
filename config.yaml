@@ -1,0 +1,42 @@
+# IT Management System Configuration
+system:
+  name: "IT Management Automation System"
+  version: "1.0.0"
+  
+# Asset Management
+assets:
+  data_file: "data/assets.json"
+  categories:
+    - "Desktop"
+    - "Laptop"
+    - "Server"
+    - "Network Device"
+    - "Mobile Device"
+    - "Software License"
+
+# Ticket Management
+tickets:
+  data_file: "data/tickets.json"
+  priorities:
+    - "Low"
+    - "Medium"
+    - "High"
+    - "Critical"
+  statuses:
+    - "Open"
+    - "In Progress"
+    - "Resolved"
+    - "Closed"
+
+# User Management
+users:
+  data_file: "data/users.json"
+  roles:
+    - "Admin"
+    - "Technician"
+    - "User"
+
+# Monitoring
+monitoring:
+  data_file: "data/monitoring.json"
+  check_interval: 300  # seconds
