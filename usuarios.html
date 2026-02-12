@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Usuários - Sistema COTEC 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #57bd9e;
+            --primary-dark: #3d8b6a;
+            --danger: #e53935;
+            --bg-dark: #1a1a2e;
+            --bg-darker: #16213e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-darker));
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .btn-light {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .btn-light:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(87, 189, 158, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #c62828);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        /* Container principal */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-header h2 {
+            font-size: 1.2rem;
+            color: #333;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        /* Tabela */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #555;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-admin {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .badge-user {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .badge-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .badge-inactive {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .btn-action {
+            border: none;
+            background: transparent;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+        }
+        
+        .btn-action:hover {
+            background: #eee;
+            transform: scale(1.1);
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        
+        .modal-close {
+            border: none;
+            background: transparent;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Alert */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        
+        /* Acesso negado */
+        .access-denied {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            text-align: center;
+            color: white;
+        }
+        
+        .access-denied .icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+        
+        .access-denied h2 {
+            margin-bottom: 10px;
+        }
+        
+        .access-denied p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+    <script>
+        // Verificar autenticação e permissão via localStorage
+        (function() {
+            var userData = localStorage.getItem('sgdti_user');
+            
+            if (!userData) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                var user = JSON.parse(userData);
+                
+                if (user.perfil !== 'admin') {
+                    // Usuário não é admin - mostrar acesso negado
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('main-content').style.display = 'none';
+                        document.getElementById('access-denied').style.display = 'flex';
+                    });
+                } else {
+                    window.currentUser = user;
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('user-name').textContent = user.nome;
+                        loadUsers();
+                    });
+                }
+            } catch (e) {
+                localStorage.removeItem('sgdti_user');
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <!-- Acesso Negado -->
+    <div id="access-denied" class="access-denied" style="display: none;">
+        <div class="icon">🚫</div>
+        <h2>Acesso Negado</h2>
+        <p>Você não tem permissão para acessar esta página.<br>Somente administradores podem gerenciar usuários.</p>
+        <a href="index.html" class="btn btn-primary">← Voltar ao Sistema</a>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div id="main-content">
+        <header class="header">
+            <h1>👥 Gerenciamento de Usuários</h1>
+            <div class="header-actions">
+                <span style="color: white; margin-right: 10px;">Olá, <strong id="user-name">Admin</strong></span>
+                <a href="index.html" class="btn btn-light">← Voltar ao Sistema</a>
+            </div>
+        </header>
+
+        <div class="container">
+            <div id="alert" class="alert"></div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 Lista de Usuários</h2>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <span>➕</span> Novo Usuário
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Usuário</th>
+                                    <th>Email</th>
+                                    <th>Perfil</th>
+                                    <th>Status</th>
+                                    <th>Último Acesso</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table">
+                                <tr>
+                                    <td colspan="7" class="loading">Carregando usuários...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 12px; color: white;">
+                <h3 style="margin-bottom: 15px;">📌 Níveis de Permissão</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #667eea; margin-bottom: 8px;">👑 Administrador</h4>
+                        <ul style="margin-left: 20px; color: rgba(255,255,255,0.8); font-size: 0.9rem;">
+                            <li>Acesso total ao sistema</li>
+                            <li>Pode adicionar, editar e excluir dados</li>
+                            <li>Gerencia usuários e permissões</li>
+                        </ul>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #1976d2; margin-bottom: 8px;">👤 Usuário</h4>
+                        <ul style="margin-left: 20px; color: rgba(255,255,255,0.8); font-size: 0.9rem;">
+                            <li>Acesso de leitura apenas</li>
+                            <li>Pode visualizar todos os dados</li>
+                            <li>Não pode adicionar, editar ou excluir</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Criar/Editar Usuário -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Novo Usuário</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" onsubmit="saveUser(event)">
+                    <input type="hidden" id="userId" value="">
+                    
+                    <div class="form-group">
+                        <label for="nome">Nome Completo *</label>
+                        <input type="text" id="nome" class="form-control" required placeholder="Digite o nome completo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="usuario">Usuário *</label>
+                        <input type="text" id="usuario" class="form-control" required placeholder="Digite o nome de usuário">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" class="form-control" required placeholder="Digite o email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senha">Senha <span id="senha-required">*</span></label>
+                        <input type="password" id="senha" class="form-control" placeholder="Digite a senha">
+                        <small id="senha-hint" style="color: #999; display: none;">Deixe em branco para manter a senha atual</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="perfil">Perfil/Permissão *</label>
+                        <select id="perfil" class="form-control" required>
+                            <option value="usuario">👤 Usuário (somente leitura)</option>
+                            <option value="admin">👑 Administrador (acesso total)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="status-group" style="display: none;">
+                        <label for="ativo">Status</label>
+                        <select id="ativo" class="form-control">
+                            <option value="1">✓ Ativo</option>
+                            <option value="0">✗ Inativo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let users = [];
+        let editingId = null;
+        
+        // Carregar usuários
+        function loadUsers() {
+            var user = JSON.parse(localStorage.getItem('sgdti_user') || '{}');
+            
+            fetch('api/autenticar.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'list_users', admin_id: user.id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    users = data.data;
+                    renderTable();
+                } else {
+                    showAlert('Erro ao carregar usuários: ' + data.error, 'error');
+                }
+            })
+            .catch(err => {
+                showAlert('Erro de conexão', 'error');
+            });
+        }
+        
+        // Renderizar tabela
+        function renderTable() {
+            const tbody = document.getElementById('users-table');
+            
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="icon">👥</div>
+                                <p>Nenhum usuário cadastrado</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td><strong>${user.nome || ''}</strong></td>
+                    <td>${user.usuario || ''}</td>
+                    <td>${user.email || ''}</td>
+                    <td>
+                        <span class="badge ${user.perfil === 'admin' ? 'badge-admin' : 'badge-user'}">
+                            ${user.perfil === 'admin' ? '👑 Admin' : '👤 Usuário'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${user.ativo == 1 ? 'badge-active' : 'badge-inactive'}">
+                            ${user.ativo == 1 ? '✓ Ativo' : '✗ Inativo'}
+                        </span>
+                    </td>
+                    <td>${user.ultimo_acesso ? formatDate(user.ultimo_acesso) : 'Nunca'}</td>
+                    <td>
+                        <button class="btn-action" onclick="editUser(${user.id})" title="Editar">✏️</button>
+                        <button class="btn-action" onclick="deleteUser(${user.id}, '${user.usuario}')" title="Excluir">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Formatar data
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // Abrir modal para criar
+        function openCreateModal() {
+            editingId = null;
+            document.getElementById('modal-title').textContent = 'Novo Usuário';
+            document.getElementById('userId').value = '';
+            document.getElementById('nome').value = '';
+            document.getElementById('usuario').value = '';
+            document.getElementById('usuario').disabled = false;
+            document.getElementById('email').value = '';
+            document.getElementById('senha').value = '';
+            document.getElementById('senha').required = true;
+            document.getElementById('senha-required').style.display = 'inline';
+            document.getElementById('senha-hint').style.display = 'none';
+            document.getElementById('perfil').value = 'usuario';
+            document.getElementById('status-group').style.display = 'none';
+            document.getElementById('userModal').classList.add('active');
+        }
+        
+        // Editar usuário
+        function editUser(id) {
+            const user = users.find(u => u.id == id);
+            if (!user) return;
+            
+            editingId = id;
+            document.getElementById('modal-title').textContent = 'Editar Usuário';
+            document.getElementById('userId').value = user.id;
+            document.getElementById('nome').value = user.nome;
+            document.getElementById('usuario').value = user.usuario;
+            document.getElementById('usuario').disabled = true;
+            document.getElementById('email').value = user.email;
+            document.getElementById('senha').value = '';
+            document.getElementById('senha').required = false;
+            document.getElementById('senha-required').style.display = 'none';
+            document.getElementById('senha-hint').style.display = 'block';
+            document.getElementById('perfil').value = user.perfil;
+            document.getElementById('ativo').value = user.ativo;
+            document.getElementById('status-group').style.display = 'block';
+            document.getElementById('userModal').classList.add('active');
+        }
+        
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('userModal').classList.remove('active');
+        }
+        
+        // Salvar usuário
+        function saveUser(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nome').value.trim();
+            const usuario = document.getElementById('usuario').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const senha = document.getElementById('senha').value;
+            const perfil = document.getElementById('perfil').value;
+            const ativo = document.getElementById('ativo').value;
+            
+            if (editingId) {
+                // Atualizar
+                const payload = {
+                    action: 'update_user',
+                    admin_id: window.currentUser.id,
+                    id: editingId,
+                    nome: nome,
+                    email: email,
+                    perfil: perfil,
+                    ativo: parseInt(ativo)
+                };
+                
+                if (senha) {
+                    payload.nova_senha = senha;
+                }
+                
+                fetch('api/autenticar.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Usuário atualizado com sucesso!', 'success');
+                        closeModal();
+                        loadUsers();
+                    } else {
+                        showAlert('Erro: ' + data.error, 'error');
+                    }
+                })
+                .catch(() => showAlert('Erro de conexão', 'error'));
+            } else {
+                // Criar
+                if (!senha) {
+                    showAlert('A senha é obrigatória para novos usuários', 'error');
+                    return;
+                }
+                
+                fetch('api/autenticar.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_user',
+                        admin_id: window.currentUser.id,
+                        nome: nome,
+                        usuario: usuario,
+                        email: email,
+                        senha: senha,
+                        perfil: perfil
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Usuário criado com sucesso!', 'success');
+                        closeModal();
+                        loadUsers();
+                    } else {
+                        showAlert('Erro: ' + data.error, 'error');
+                    }
+                })
+                .catch(() => showAlert('Erro de conexão', 'error'));
+            }
+        }
+        
+        // Excluir usuário
+        function deleteUser(id, username) {
+            if (!confirm('Tem certeza que deseja excluir o usuário "' + username + '"?\n\nEsta ação não pode ser desfeita.')) {
+                return;
+            }
+            
+            fetch('api/autenticar.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete_user', admin_id: window.currentUser.id, id: id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Usuário excluído com sucesso!', 'success');
+                    loadUsers();
+                } else {
+                    showAlert('Erro: ' + data.error, 'error');
+                }
+            })
+            .catch(() => showAlert('Erro de conexão', 'error'));
+        }
+        
+        // Mostrar alerta
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = 'alert show alert-' + type;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Fechar modal ao clicar fora
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>

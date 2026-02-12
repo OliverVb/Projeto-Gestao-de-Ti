@@ -1,0 +1,73 @@
+============================================================
+  LISTA DE ARQUIVOS PARA UPLOAD NO KINGHOST
+  Sistema COTEC - Gestão
+  Data: 02/02/2026
+============================================================
+
+IMPORTANTE: O erro "HTTP 404 - File not found" significa que
+o arquivo api/admin.php NÃO existe no servidor.
+
+============================================================
+ARQUIVOS OBRIGATÓRIOS PARA O CRUD FUNCIONAR:
+============================================================
+
+📁 Raiz do site (pasta gestao/):
+   ├── index.html
+   ├── styles.css
+   ├── script.js
+   ├── admin.css          ← NOVO (estilos do CRUD)
+   ├── admin.js           ← NOVO (lógica do CRUD)
+   ├── admin-integration.js
+   └── config.php
+
+📁 Pasta api/:
+   ├── admin.php          ← CRUCIAL! Este é o endpoint do CRUD
+   ├── get_equipe_ti.php
+   ├── get_impressoras.php
+   ├── get_internet.php
+   ├── get_equipamentos.php
+   ├── get_emails.php
+   └── teste_crud.php     ← TESTE (acesse no navegador para verificar)
+
+📁 Pasta images/:
+   └── (todas as imagens)
+
+============================================================
+COMO VERIFICAR SE DEU CERTO:
+============================================================
+
+1. Após fazer upload, acesse no navegador:
+   https://seusite.com.br/api/teste_crud.php
+
+2. Se aparecer tudo verde (✅), o CRUD vai funcionar.
+
+3. Se aparecer vermelho (❌), verifique:
+   - Se o arquivo foi enviado
+   - Se está na pasta correta (api/)
+   - Se as permissões estão corretas (644 para arquivos)
+
+============================================================
+ESTRUTURA ESPERADA NO KINGHOST:
+============================================================
+
+public_html/
+└── gestao/              (ou na raiz, depende do seu domínio)
+    ├── index.html
+    ├── styles.css
+    ├── script.js
+    ├── admin.css
+    ├── admin.js
+    ├── admin-integration.js
+    ├── config.php
+    ├── api/
+    │   ├── admin.php     ← ESTE ARQUIVO DEVE EXISTIR!
+    │   ├── get_equipe_ti.php
+    │   ├── get_impressoras.php
+    │   ├── get_internet.php
+    │   ├── get_equipamentos.php
+    │   ├── get_emails.php
+    │   └── teste_crud.php
+    └── images/
+        └── logo.png
+
+============================================================
