@@ -3,7 +3,6 @@ Asset Management Module
 Automates tracking and management of IT assets (hardware and software)
 """
 from typing import Dict, List, Optional
-from datetime import datetime
 from src.utils import load_data, save_data, generate_id, get_current_timestamp, load_config
 
 

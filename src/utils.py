@@ -4,6 +4,7 @@ Handles configuration loading and data persistence
 """
 import json
 import os
+import time
 from datetime import datetime
 from typing import Dict, List, Any
 import yaml
@@ -43,7 +44,6 @@ def save_data(file_path: str, data: List[Dict]):
 
 def generate_id(prefix: str = "ID") -> str:
     """Generate a unique ID with timestamp and microseconds"""
-    import time
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     microseconds = int(time.time() * 1000000) % 1000000
     return f"{prefix}-{timestamp}{microseconds:06d}"
