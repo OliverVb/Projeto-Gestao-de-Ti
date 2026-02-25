@@ -7,6 +7,39 @@ let emailsData = [];
 let vigenciasData = [];
 let viagensData = [];
 
+// Função auxiliar para calcular o status real da viagem baseado na data atual
+function calcularStatusViagem(viagem) {
+    // Se já está cancelada, mantém o status
+    if (viagem.status === 'CANCELADA') {
+        return viagem.status;
+    }
+    
+    // Se já está marcada como concluída no banco, mantém
+    if (viagem.status === 'CONCLUIDA') {
+        return viagem.status;
+    }
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Zera as horas para comparar apenas datas
+    
+    // Usar data_volta para determinar se a viagem já terminou
+    const dataVolta = viagem.data_volta ? new Date(viagem.data_volta + 'T00:00:00') : null;
+    const dataIda = viagem.data_ida ? new Date(viagem.data_ida + 'T00:00:00') : null;
+    
+    // Se a data de volta já passou, a viagem está concluída
+    if (dataVolta && dataVolta < hoje) {
+        return 'CONCLUIDA';
+    }
+    
+    // Se a data de ida já começou e a volta ainda não passou, está em andamento
+    if (dataIda && dataIda <= hoje && dataVolta && dataVolta >= hoje) {
+        return 'EM_ANDAMENTO';
+    }
+    
+    // Caso contrário, mantém o status original (AGENDADA)
+    return viagem.status || 'AGENDADA';
+}
+
 // Estado da aplicação
 let currentTab = 'dashboard';
 let viewMode = 'cards';
@@ -32,14 +65,15 @@ async function loadDataFromDatabase() {
         showLoading();
         
         // Carregar todos os dados em paralelo
-        const [tiResponse, impressorasResponse, internetResponse, equipamentosResponse, emailsResponse, vigenciasResponse, viagensResponse] = await Promise.all([
+        const [tiResponse, impressorasResponse, internetResponse, equipamentosResponse, emailsResponse, vigenciasResponse, viagensResponse, folgasResponse] = await Promise.all([
             fetch('api/get_equipe_ti.php'),
             fetch('api/get_impressoras.php'),
             fetch('api/get_internet.php'),
             fetch('api/get_equipamentos.php'),
             fetch('api/get_emails.php'),
             fetch('api/get_vigencias_internet.php'),
-            fetch('api/get_viagens.php')
+            fetch('api/get_viagens.php'),
+            fetch('api/get_folgas.php?action=listar')
         ]);
         
         const tiResult = await tiResponse.json();
@@ -49,6 +83,7 @@ async function loadDataFromDatabase() {
         const emailsResult = await emailsResponse.json();
         const vigenciasResult = await vigenciasResponse.json();
         const viagensResult = await viagensResponse.json();
+        const folgasResult = await folgasResponse.json();
         
         if (tiResult.success) tiData = tiResult.data;
         if (impressorasResult.success) impressorasData = impressorasResult.data;
@@ -57,6 +92,19 @@ async function loadDataFromDatabase() {
         if (emailsResult.success) emailsData = emailsResult.data;
         if (vigenciasResult.success) vigenciasData = vigenciasResult.data;
         if (viagensResult.success) viagensData = viagensResult.data;
+        if (folgasResult.success) {
+            folgasData = folgasResult.data.map(f => ({
+                id: f.id,
+                colaborador: f.colaborador_codigo,
+                colaborador_nome: f.colaborador_nome,
+                data_inicio: f.data_inicio,
+                data_fim: f.data_fim,
+                tipo: f.tipo,
+                status: f.status,
+                observacao: f.observacao,
+                dias_totais: f.dias_totais
+            }));
+        }
         
         console.log('✅ Dados carregados do banco:', {
             equipe_ti: tiData.length,
@@ -65,7 +113,8 @@ async function loadDataFromDatabase() {
             equipamentos: equipamentosData.length,
             emails: emailsData.length,
             vigencias: vigenciasData.length,
-            viagens: viagensData.length
+            viagens: viagensData.length,
+            folgas: folgasData.length
         });
         
         hideLoading();
@@ -208,7 +257,24 @@ function setupEventListeners() {
         });
     });
 
-
+    // Clique nos cards do dashboard para navegar às abas
+    const cardMappings = {
+        'card-ti': 'ti',
+        'card-impressoras': 'impressoras',
+        'card-internet': 'internet',
+        'card-equipamentos': 'equipamentos',
+        'card-emails': 'emails',
+        'card-vigencias': 'vigencias',
+        'card-viagens': 'viagens',
+        'card-folgas': 'folgas'
+    };
+    
+    Object.entries(cardMappings).forEach(([cardId, tabName]) => {
+        const card = document.getElementById(cardId);
+        if (card) {
+            card.addEventListener('click', () => switchTab(tabName));
+        }
+    });
 
     // Modo de visualização
     viewBtns.forEach(btn => {
@@ -222,9 +288,6 @@ function setupEventListeners() {
 
     // Modal
     modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
 
     // Filtros
     setupFilterListeners();
@@ -235,14 +298,19 @@ function switchTab(tab) {
     
     // Atualizar navegação
     navItems.forEach(item => item.classList.remove('active'));
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    const tabButton = document.querySelector(`[data-tab="${tab}"]`);
+    if (tabButton) tabButton.classList.add('active');
     
     // Atualizar conteúdo
     tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById(tab).classList.add('active');
+    const tabContent = document.getElementById(tab);
+    if (tabContent) tabContent.classList.add('active');
     
-    // Resetar busca
-    globalSearch.value = '';
+    // Resetar busca (verificar se existe)
+    const globalSearch = document.getElementById('globalSearch');
+    if (globalSearch) {
+        globalSearch.value = '';
+    }
     searchQuery = '';
     
     // Renderizar conteúdo
@@ -273,6 +341,17 @@ function renderCurrentTab() {
             break;
         case 'viagens':
             renderViagens();
+            break;
+        case 'historico-viagens':
+            // Garantir que os dados de viagens estejam carregados
+            if (viagensData.length === 0 && !isLoadingData) {
+                loadDataFromDatabase().then(() => renderHistoricoViagens());
+            } else {
+                renderHistoricoViagens();
+            }
+            break;
+        case 'folgas':
+            initCalendarioFolgas();
             break;
     }
 }
@@ -389,6 +468,7 @@ function updateDashboardStats() {
     const cardEmails = document.querySelector('#card-emails .stat-info h3');
     const cardVigencias = document.querySelector('#card-vigencias .stat-info h3');
     const cardViagens = document.querySelector('#card-viagens .stat-info h3');
+    const cardFolgas = document.querySelector('#card-folgas .stat-info h3');
     
     if (cardEquipamentos) cardEquipamentos.textContent = equipamentosData.length;
     if (cardTi) cardTi.textContent = tiData.length;
@@ -396,9 +476,21 @@ function updateDashboardStats() {
     if (cardInternet) cardInternet.textContent = internetData.length;
     if (cardEmails) cardEmails.textContent = emailsData.length;
     if (cardVigencias) cardVigencias.textContent = vigenciasData.length;
-    // Para viagens, mostrar apenas as agendadas
-    const viagensAgendadas = viagensData.filter(v => v.status === 'AGENDADA' || v.status === 'EM_ANDAMENTO').length;
+    // Para viagens, mostrar apenas as agendadas e em andamento (considerando status automático por data)
+    const viagensAgendadas = viagensData.filter(v => {
+        const statusCalculado = calcularStatusViagem(v);
+        return statusCalculado === 'AGENDADA' || statusCalculado === 'EM_ANDAMENTO';
+    }).length;
     if (cardViagens) cardViagens.textContent = viagensAgendadas;
+    // Para folgas, usar folgasData se carregado, senão localStorage
+    const totalFolgas = folgasData.length > 0 ? folgasData.length : JSON.parse(localStorage.getItem('sgdti_folgas') || '[]').length;
+    if (cardFolgas) cardFolgas.textContent = totalFolgas;
+    
+    // Contar viagens concluídas para o histórico
+    const viagensConcluidas = viagensData.filter(v => {
+        const statusCalculado = calcularStatusViagem(v);
+        return statusCalculado === 'CONCLUIDA';
+    }).length;
     
     // Atualizar badges da sidebar
     const navBadgeTi = document.getElementById('nav-badge-ti');
@@ -408,6 +500,8 @@ function updateDashboardStats() {
     const navBadgeEmails = document.getElementById('nav-badge-emails');
     const navBadgeVigencias = document.getElementById('nav-badge-vigencias');
     const navBadgeViagens = document.getElementById('nav-badge-viagens');
+    const navBadgeHistoricoViagens = document.getElementById('nav-badge-historico-viagens');
+    const navBadgeFolgas = document.getElementById('nav-badge-folgas');
     
     if (navBadgeTi) navBadgeTi.textContent = tiData.length;
     if (navBadgeImpressoras) navBadgeImpressoras.textContent = impressorasData.length;
@@ -416,6 +510,8 @@ function updateDashboardStats() {
     if (navBadgeEmails) navBadgeEmails.textContent = emailsData.length;
     if (navBadgeVigencias) navBadgeVigencias.textContent = vigenciasData.length;
     if (navBadgeViagens) navBadgeViagens.textContent = viagensAgendadas;
+    if (navBadgeHistoricoViagens) navBadgeHistoricoViagens.textContent = viagensConcluidas;
+    if (navBadgeFolgas) navBadgeFolgas.textContent = totalFolgas;
     
     // Atualizar resumos rápidos
     const impressorasFuncionando = document.getElementById('impressorasFuncionando');
@@ -1428,6 +1524,12 @@ function setupFilterListeners() {
     if (viagensSearch) viagensSearch.addEventListener('input', renderViagens);
     if (viagensStatus) viagensStatus.addEventListener('change', renderViagens);
     if (viagensDestino) viagensDestino.addEventListener('change', renderViagens);
+    
+    // Histórico de Viagens
+    const historicoViagensSearch = document.getElementById('historicoViagensSearchFilter');
+    const historicoViagensDestino = document.getElementById('historicoViagensDestinoFilter');
+    if (historicoViagensSearch) historicoViagensSearch.addEventListener('input', renderHistoricoViagens);
+    if (historicoViagensDestino) historicoViagensDestino.addEventListener('change', renderHistoricoViagens);
 }
 
 // =============================================
@@ -2012,7 +2114,18 @@ function renderViagens() {
     const statusFilter = document.getElementById('viagensStatusFilter')?.value || '';
     const destinoFilter = document.getElementById('viagensDestinoFilter')?.value || '';
     
-    let filteredData = viagensData.filter(item => {
+    // Aplicar o status calculado em cada viagem (usando função global calcularStatusViagem)
+    const viagensComStatusAtualizado = viagensData.map(item => ({
+        ...item,
+        statusOriginal: item.status,
+        status: calcularStatusViagem(item)
+    }));
+    
+    // Filtrar para excluir viagens concluídas (elas vão para o Histórico)
+    let filteredData = viagensComStatusAtualizado.filter(item => {
+        // Excluir concluídas da escala de viagens (vão para o histórico)
+        if (item.status === 'CONCLUIDA') return false;
+        
         const matchSearch = !searchFilter ||
             normalizeString(item.responsavel || '').includes(normalizeString(searchFilter)) ||
             normalizeString(item.destino || '').includes(normalizeString(searchFilter)) ||
@@ -2077,7 +2190,7 @@ function renderViagens() {
                             <div class="card-field-value">${item.meio_transporte || '-'}</div>
                         </div>
                         <div class="card-field">
-                            <div class="card-field-label">🏨 Diária (R$ 230,00)</div>
+                            <div class="card-field-label">🏨 Diárias</div>
                             <div class="card-field-value valor-destaque">${item.valor_total_diarias_formatado || '-'}</div>
                         </div>
                         <div class="card-field">
@@ -2163,28 +2276,71 @@ function renderViagensSummary(data) {
     const summaryEl = document.getElementById('viagensSummary');
     if (!summaryEl) return;
     
-    const agendadas = data.filter(v => v.status === 'AGENDADA').length;
-    const emAndamento = data.filter(v => v.status === 'EM_ANDAMENTO').length;
-    const concluidas = data.filter(v => v.status === 'CONCLUIDA').length;
-    const canceladas = data.filter(v => v.status === 'CANCELADA').length;
+    // Verificar usuário logado
+    const currentUser = window.currentUser || {};
+    const isAdmin = window.isAdmin || false;
+    const nomeUsuarioLogado = currentUser.nome || '';
+    
+    // Filtrar dados baseado no perfil do usuário
+    // Admin vê todos, usuário comum vê apenas suas próprias viagens
+    let dadosFiltrados = data;
+    if (!isAdmin && nomeUsuarioLogado) {
+        // Comparação case-insensitive e parcial para encontrar o usuário
+        dadosFiltrados = data.filter(v => {
+            const responsavel = (v.responsavel || '').toLowerCase();
+            const usuario = nomeUsuarioLogado.toLowerCase();
+            // Verifica se o nome do responsável contém o nome do usuário ou vice-versa
+            return responsavel.includes(usuario) || usuario.includes(responsavel) || 
+                   responsavel === usuario;
+        });
+    }
+    
+    const agendadas = dadosFiltrados.filter(v => v.status === 'AGENDADA').length;
+    const emAndamento = dadosFiltrados.filter(v => v.status === 'EM_ANDAMENTO').length;
+    const concluidas = dadosFiltrados.filter(v => v.status === 'CONCLUIDA').length;
+    const canceladas = dadosFiltrados.filter(v => v.status === 'CANCELADA').length;
     
     // Calcular total de dias
-    const totalDias = data.reduce((sum, v) => sum + (parseInt(v.quantidade_dias) || 1), 0);
+    const totalDias = dadosFiltrados.reduce((sum, v) => sum + (parseInt(v.quantidade_dias) || 1), 0);
     
-    // Valor da diária padrão
-    const valorDiariaPadrao = 230.00;
+    // Agrupar por responsável
+    const porResponsavel = {};
+    dadosFiltrados.forEach(v => {
+        const nome = v.responsavel || 'Sem Responsável';
+        if (!porResponsavel[nome]) {
+            porResponsavel[nome] = {
+                nome: nome,
+                viagens: 0,
+                dias: 0,
+                valorDiarias: 0,
+                valorOutros: 0,
+                valorTotal: 0
+            };
+        }
+        porResponsavel[nome].viagens++;
+        porResponsavel[nome].dias += parseInt(v.quantidade_dias) || 1;
+        porResponsavel[nome].valorDiarias += parseFloat(v.valor_total_diarias) || 0;
+        porResponsavel[nome].valorOutros += parseFloat(v.valor_outros) || 0;
+        porResponsavel[nome].valorTotal += parseFloat(v.valor_total) || 0;
+    });
     
-    // Valor total das diárias (dias × R$ 230,00)
-    const valorTotalDiarias = data.reduce((sum, v) => sum + (parseFloat(v.valor_total_diarias) || 0), 0);
-    const valorDiariasFormatado = valorTotalDiarias.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Ordenar por nome
+    const listaResponsaveis = Object.values(porResponsavel).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     
-    // Valor de outros custos
-    const valorOutros = data.reduce((sum, v) => sum + (parseFloat(v.valor_outros) || 0), 0);
-    const valorOutrosFormatado = valorOutros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Gerar cards de responsáveis
+    const responsaveisCards = listaResponsaveis.map(r => `
+        <div class="summary-card summary-responsavel">
+            <div class="summary-icon">👤</div>
+            <div class="summary-info">
+                <span class="summary-value-nome">${r.nome}</span>
+                <span class="summary-detail">📆 ${r.dias} dia(s) | 🧳 ${r.viagens} viagem(ns)</span>
+                <span class="summary-value-money">${r.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+        </div>
+    `).join('');
     
-    // Valor total geral
-    const valorTotalGeral = valorTotalDiarias + valorOutros;
-    const valorTotalFormatado = valorTotalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Título da seção baseado no perfil
+    const tituloSecao = isAdmin ? '💰 Valores por Responsável' : `💰 Minhas Viagens`;
     
     summaryEl.innerHTML = `
         <div class="summary-cards">
@@ -2202,13 +2358,6 @@ function renderViagensSummary(data) {
                     <span class="summary-label">Em Andamento</span>
                 </div>
             </div>
-            <div class="summary-card summary-concluida">
-                <div class="summary-icon">✅</div>
-                <div class="summary-info">
-                    <span class="summary-value">${concluidas}</span>
-                    <span class="summary-label">Concluídas</span>
-                </div>
-            </div>
             <div class="summary-card summary-cancelada">
                 <div class="summary-icon">❌</div>
                 <div class="summary-info">
@@ -2223,29 +2372,295 @@ function renderViagensSummary(data) {
                     <span class="summary-label">Total de Dias</span>
                 </div>
             </div>
-            <div class="summary-card summary-diaria">
-                <div class="summary-icon">🏨</div>
+        </div>
+        <div class="summary-section-title">${tituloSecao}</div>
+        <div class="summary-cards summary-responsaveis">
+            ${responsaveisCards}
+        </div>
+    `;
+}
+
+// Renderizar Histórico de Viagens (apenas concluídas)
+function renderHistoricoViagens() {
+    const container = document.getElementById('historicoViagensContent');
+    if (!container) return;
+    
+    const searchFilter = document.getElementById('historicoViagensSearchFilter')?.value || '';
+    const destinoFilter = document.getElementById('historicoViagensDestinoFilter')?.value || '';
+    
+    // Aplicar o status calculado em cada viagem
+    const viagensComStatusAtualizado = viagensData.map(item => ({
+        ...item,
+        statusOriginal: item.status,
+        status: calcularStatusViagem(item)
+    }));
+    
+    // Preencher filtro de destinos (sempre atualizar para garantir)
+    const destinoFilterEl = document.getElementById('historicoViagensDestinoFilter');
+    if (destinoFilterEl) {
+        const destinoAtual = destinoFilterEl.value;
+        const destinos = [...new Set(viagensComStatusAtualizado.filter(v => v.status === 'CONCLUIDA').map(v => v.destino).filter(Boolean))];
+        destinos.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        
+        // Limpar e repreencher
+        destinoFilterEl.innerHTML = '<option value="">Todos os Destinos</option>';
+        destinos.forEach(destino => {
+            const option = document.createElement('option');
+            option.value = destino;
+            option.textContent = destino;
+            if (destino === destinoAtual) option.selected = true;
+            destinoFilterEl.appendChild(option);
+        });
+    }
+    
+    // Filtrar apenas viagens concluídas
+    let filteredData = viagensComStatusAtualizado.filter(item => {
+        // Apenas concluídas no histórico
+        if (item.status !== 'CONCLUIDA') return false;
+        
+        const matchSearch = !searchFilter ||
+            normalizeString(item.responsavel || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.destino || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.origem || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.motivo || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.cotec || '').includes(normalizeString(searchFilter));
+        const matchDestino = !destinoFilter || item.destino === destinoFilter;
+        return matchSearch && matchDestino;
+    });
+    
+    // Ordenar por data de volta (mais recentes primeiro)
+    filteredData.sort((a, b) => {
+        const dataA = a.data_volta ? new Date(a.data_volta) : new Date(0);
+        const dataB = b.data_volta ? new Date(b.data_volta) : new Date(0);
+        return dataB - dataA;
+    });
+    
+    // Atualizar resumo
+    renderHistoricoViagensSummary(filteredData);
+    
+    if (viewMode === 'cards') {
+        container.className = 'data-container';
+        container.innerHTML = filteredData.map(item => {
+            return `
+                <div class="data-card viagem-card status-ok">
+                    <div class="card-header">
+                        <div class="card-title">${item.responsavel || 'Sem Responsável'}</div>
+                        <div class="card-badge">✅ Concluída</div>
+                    </div>
+                    <div class="card-body" onclick='showViagemDetails(${JSON.stringify(item).replace(/'/g, "\\'")})'>
+                        <div class="card-field">
+                            <div class="card-field-label">📍 Destino</div>
+                            <div class="card-field-value destino-destaque">${item.destino || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">🏠 Origem</div>
+                            <div class="card-field-value">${item.origem || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">📅 Data Ida</div>
+                            <div class="card-field-value">${item.data_ida_formatada || item.data_ida || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">📅 Data Volta</div>
+                            <div class="card-field-value">${item.data_volta_formatada || item.data_volta || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">📆 Dias</div>
+                            <div class="card-field-value dias-destaque">${item.quantidade_dias || 1} dia(s)</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">🚗 Transporte</div>
+                            <div class="card-field-value">${item.meio_transporte || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">🏨 Diárias</div>
+                            <div class="card-field-value valor-destaque">${item.valor_total_diarias_formatado || '-'}</div>
+                        </div>
+                        <div class="card-field">
+                            <div class="card-field-label">💰 Valor Total</div>
+                            <div class="card-field-value valor-total-destaque">${item.valor_total_formatado || '-'}</div>
+                        </div>
+                        ${item.motivo ? `
+                            <div class="card-field motivo-field">
+                                <div class="card-field-label">📝 Motivo</div>
+                                <div class="card-field-value">${item.motivo}</div>
+                            </div>
+                        ` : ''}
+                        ${item.obs ? `
+                            <div class="card-field obs-field">
+                                <div class="card-field-label">📋 Observações</div>
+                                <div class="card-field-value">${item.obs}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        container.className = 'data-container table-view';
+        container.innerHTML = `
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Responsável</th>
+                            <th>Destino</th>
+                            <th>Origem</th>
+                            <th>Data Ida</th>
+                            <th>Data Volta</th>
+                            <th>Dias</th>
+                            <th>Diárias</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredData.map((item, index) => {
+                            return `
+                                <tr class="status-ok">
+                                    <td>${index + 1}</td>
+                                    <td><strong>${item.responsavel || '-'}</strong></td>
+                                    <td>${item.destino || '-'}</td>
+                                    <td>${item.origem || '-'}</td>
+                                    <td>${item.data_ida_formatada || item.data_ida || '-'}</td>
+                                    <td>${item.data_volta_formatada || item.data_volta || '-'}</td>
+                                    <td class="text-center">${item.quantidade_dias || 1}</td>
+                                    <td class="valor-destaque">${item.valor_total_diarias_formatado || '-'}</td>
+                                    <td class="valor-total-destaque">${item.valor_total_formatado || '-'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    if (filteredData.length === 0) {
+        container.innerHTML = '<div class="empty-state"><span>📜</span><p>Nenhuma viagem concluída encontrada</p></div>';
+    }
+}
+
+// Resumo do Histórico de Viagens
+function renderHistoricoViagensSummary(data) {
+    const summaryEl = document.getElementById('historicoViagensSummary');
+    if (!summaryEl) return;
+    
+    const totalViagens = data.length;
+    const totalDias = data.reduce((sum, v) => sum + (parseInt(v.quantidade_dias) || 1), 0);
+    const totalDiarias = data.reduce((sum, v) => sum + (parseFloat(v.valor_total_diarias) || 0), 0);
+    const totalGeral = data.reduce((sum, v) => sum + (parseFloat(v.valor_total) || 0), 0);
+    
+    // Agrupar por responsável
+    const porResponsavel = {};
+    data.forEach(v => {
+        const nome = v.responsavel || 'Sem Responsável';
+        if (!porResponsavel[nome]) {
+            porResponsavel[nome] = {
+                nome: nome,
+                viagens: 0,
+                dias: 0,
+                valorTotal: 0
+            };
+        }
+        porResponsavel[nome].viagens++;
+        porResponsavel[nome].dias += parseInt(v.quantidade_dias) || 1;
+        porResponsavel[nome].valorTotal += parseFloat(v.valor_total) || 0;
+    });
+    
+    const listaResponsaveis = Object.values(porResponsavel).sort((a, b) => b.viagens - a.viagens);
+    
+    const responsaveisCards = listaResponsaveis.map(r => `
+        <div class="summary-card summary-responsavel">
+            <div class="summary-icon">👤</div>
+            <div class="summary-info">
+                <span class="summary-value-nome">${r.nome}</span>
+                <span class="summary-detail">📆 ${r.dias} dia(s) | 🧳 ${r.viagens} viagem(ns)</span>
+                <span class="summary-value-money">${r.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    summaryEl.innerHTML = `
+        <div class="summary-cards">
+            <div class="summary-card summary-concluida">
+                <div class="summary-icon">✅</div>
                 <div class="summary-info">
-                    <span class="summary-value">${valorDiariasFormatado}</span>
-                    <span class="summary-label">Total Diárias (${totalDias}d × R$ 230)</span>
+                    <span class="summary-value">${totalViagens}</span>
+                    <span class="summary-label">Viagens Concluídas</span>
                 </div>
             </div>
-            <div class="summary-card summary-outros">
-                <div class="summary-icon">🧾</div>
+            <div class="summary-card summary-dias">
+                <div class="summary-icon">📆</div>
                 <div class="summary-info">
-                    <span class="summary-value">${valorOutrosFormatado}</span>
-                    <span class="summary-label">Outros Custos</span>
+                    <span class="summary-value">${totalDias}</span>
+                    <span class="summary-label">Total de Dias</span>
                 </div>
             </div>
             <div class="summary-card summary-valor">
+                <div class="summary-icon">🏨</div>
+                <div class="summary-info">
+                    <span class="summary-value">${totalDiarias.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    <span class="summary-label">Total Diárias</span>
+                </div>
+            </div>
+            <div class="summary-card summary-total">
                 <div class="summary-icon">💰</div>
                 <div class="summary-info">
-                    <span class="summary-value">${valorTotalFormatado}</span>
-                    <span class="summary-label">Valor Total Geral</span>
+                    <span class="summary-value">${totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    <span class="summary-label">Valor Total Gasto</span>
                 </div>
             </div>
         </div>
+        <div class="summary-section-title">📊 Histórico por Responsável</div>
+        <div class="summary-cards summary-responsaveis">
+            ${responsaveisCards}
+        </div>
     `;
+}
+
+// Exportar Histórico de Viagens para Excel
+function exportHistoricoViagensToExcel() {
+    const viagensComStatusAtualizado = viagensData.map(item => ({
+        ...item,
+        status: calcularStatusViagem(item)
+    }));
+    
+    const searchFilter = document.getElementById('historicoViagensSearchFilter')?.value || '';
+    const destinoFilter = document.getElementById('historicoViagensDestinoFilter')?.value || '';
+    
+    let filteredData = viagensComStatusAtualizado.filter(item => {
+        if (item.status !== 'CONCLUIDA') return false;
+        
+        const matchSearch = !searchFilter ||
+            normalizeString(item.responsavel || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.destino || '').includes(normalizeString(searchFilter)) ||
+            normalizeString(item.motivo || '').includes(normalizeString(searchFilter));
+        const matchDestino = !destinoFilter || item.destino === destinoFilter;
+        return matchSearch && matchDestino;
+    });
+    
+    if (filteredData.length === 0) {
+        alert('Nenhum dado para exportar.');
+        return;
+    }
+    
+    let csvContent = '\uFEFF';
+    csvContent += 'Responsável;Destino;Origem;Data Ida;Data Volta;Dias;Transporte;Diárias;Total;Motivo;Observações\n';
+    
+    filteredData.forEach(item => {
+        csvContent += `"${item.responsavel || ''}";"${item.destino || ''}";"${item.origem || ''}";"${item.data_ida_formatada || item.data_ida || ''}";"${item.data_volta_formatada || item.data_volta || ''}";"${item.quantidade_dias || 1}";"${item.meio_transporte || ''}";"${item.valor_total_diarias_formatado || ''}";"${item.valor_total_formatado || ''}";"${item.motivo || ''}";"${item.obs || ''}"\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'historico_viagens.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Mostrar detalhes da viagem
@@ -2622,3 +3037,620 @@ function refreshCustomDropdowns() {
         }
     });
 }
+
+// =============================================
+// CALENDÁRIO DE FOLGAS
+// =============================================
+
+// Dados de folgas (será carregado do localStorage ou banco)
+let folgasData = [];
+let calendarioMesAtual = new Date().getMonth();
+let calendarioAnoAtual = new Date().getFullYear();
+
+// Inicializar calendário de folgas
+async function initCalendarioFolgas() {
+    await carregarFolgas();
+    renderizarCalendario();
+    atualizarBadgeFolgas();
+}
+
+// Carregar folgas do banco de dados
+async function carregarFolgas() {
+    try {
+        const response = await fetch('api/get_folgas.php?action=listar');
+        const result = await response.json();
+        
+        if (result.success) {
+            folgasData = result.data.map(f => ({
+                id: f.id,
+                colaborador: f.colaborador_codigo,
+                colaborador_nome: f.colaborador_nome,
+                data_inicio: f.data_inicio,
+                data_fim: f.data_fim,
+                tipo: f.tipo,
+                status: f.status,
+                observacao: f.observacao,
+                dias_totais: f.dias_totais
+            }));
+            console.log('✅ Folgas carregadas do banco:', folgasData.length);
+        } else {
+            // Fallback para localStorage
+            const saved = localStorage.getItem('sgdti_folgas');
+            if (saved) {
+                folgasData = JSON.parse(saved);
+            }
+            console.log('⚠️ Usando folgas do localStorage');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar folgas:', error);
+        // Fallback para localStorage
+        const saved = localStorage.getItem('sgdti_folgas');
+        if (saved) {
+            folgasData = JSON.parse(saved);
+        }
+    }
+}
+
+// Salvar folgas no localStorage (backup) e atualizar badge
+function salvarFolgasStorage() {
+    localStorage.setItem('sgdti_folgas', JSON.stringify(folgasData));
+    atualizarBadgeFolgas();
+}
+
+// Atualizar badge do menu
+function atualizarBadgeFolgas() {
+    const badge = document.getElementById('nav-badge-folgas');
+    if (badge) {
+        badge.textContent = folgasData.length;
+    }
+    
+    // Atualizar card do dashboard
+    const cardFolgas = document.querySelector('#card-folgas .stat-info h3');
+    if (cardFolgas) {
+        cardFolgas.textContent = folgasData.length;
+    }
+}
+
+// Colaboradores fixos para escala de folgas
+const COLABORADORES_FOLGAS = [
+    { codigo: 'fabricio_lima', nome: 'Fabricio Lima Cabral' },
+    { codigo: 'fabricio_alves', nome: 'Fabricio Alves de Oliveira' },
+    { codigo: 'roberto_sergio', nome: 'Roberto Sergio Jaldin Beckmann' },
+    { codigo: 'roberto_rondinei', nome: 'Roberto Rondinei Silva de Lima' }
+];
+
+// Carregar colaboradores no select (já estão no HTML, mas isso garante consistência)
+function carregarColaboradores() {
+    // Os colaboradores já estão fixos no HTML
+    // Esta função pode ser usada para carregar dinamicamente se necessário
+    console.log('Colaboradores disponíveis:', COLABORADORES_FOLGAS.length);
+}
+
+// Renderizar calendário
+function renderizarCalendario() {
+    const grid = document.getElementById('calendario-grid');
+    const mesAnoLabel = document.getElementById('calendario-mes-ano');
+    
+    if (!grid || !mesAnoLabel) return;
+    
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    
+    mesAnoLabel.textContent = `${meses[calendarioMesAtual]} ${calendarioAnoAtual}`;
+    
+    grid.innerHTML = '';
+    
+    const primeiroDia = new Date(calendarioAnoAtual, calendarioMesAtual, 1);
+    const ultimoDia = new Date(calendarioAnoAtual, calendarioMesAtual + 1, 0);
+    const diasNoMes = ultimoDia.getDate();
+    const primeiroDiaSemana = primeiroDia.getDay();
+    
+    // Dias do mês anterior
+    const mesAnterior = new Date(calendarioAnoAtual, calendarioMesAtual, 0);
+    const diasMesAnterior = mesAnterior.getDate();
+    
+    for (let i = primeiroDiaSemana - 1; i >= 0; i--) {
+        const dia = diasMesAnterior - i;
+        const divDia = criarDiaCalendario(dia, true, -1);
+        grid.appendChild(divDia);
+    }
+    
+    // Dias do mês atual
+    const hoje = new Date();
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+        const data = new Date(calendarioAnoAtual, calendarioMesAtual, dia);
+        const isHoje = data.toDateString() === hoje.toDateString();
+        const diaSemana = data.getDay();
+        
+        const divDia = criarDiaCalendario(dia, false, diaSemana, isHoje, data);
+        grid.appendChild(divDia);
+    }
+    
+    // Dias do próximo mês
+    const totalCelulas = grid.children.length;
+    const celulasRestantes = 42 - totalCelulas; // 6 semanas completas
+    
+    for (let dia = 1; dia <= celulasRestantes; dia++) {
+        const divDia = criarDiaCalendario(dia, true, (primeiroDiaSemana + diasNoMes + dia - 1) % 7);
+        grid.appendChild(divDia);
+    }
+    
+    // Atualizar lista de folgas do mês
+    renderizarListaFolgas();
+}
+
+// Criar elemento de dia do calendário
+function criarDiaCalendario(dia, outroMes, diaSemana, isHoje = false, data = null) {
+    const divDia = document.createElement('div');
+    divDia.className = 'calendario-dia';
+    
+    if (outroMes) divDia.classList.add('outro-mes');
+    if (isHoje) divDia.classList.add('hoje');
+    if (diaSemana === 0) divDia.classList.add('domingo');
+    if (diaSemana === 6) divDia.classList.add('sabado');
+    
+    const numeroDiv = document.createElement('div');
+    numeroDiv.className = 'calendario-dia-numero';
+    numeroDiv.textContent = dia;
+    divDia.appendChild(numeroDiv);
+    
+    // Adicionar folgas do dia
+    if (data && !outroMes) {
+        const folgasDoDia = getFolgasDoDia(data);
+        
+        if (folgasDoDia.length > 0) {
+            divDia.classList.add('tem-folga');
+            
+            folgasDoDia.forEach(folga => {
+                const folgaDiv = document.createElement('div');
+                folgaDiv.className = `folga-evento ${folga.status}`;
+                folgaDiv.textContent = folga.colaborador_nome || folga.colaborador;
+                folgaDiv.title = `${folga.colaborador_nome || folga.colaborador} - ${folga.tipo} (${folga.status})`;
+                folgaDiv.onclick = () => editarFolga(folga.id);
+                divDia.appendChild(folgaDiv);
+            });
+        }
+    }
+    
+    return divDia;
+}
+
+// Obter folgas de um dia específico
+function getFolgasDoDia(data) {
+    const dataStr = data.toISOString().split('T')[0];
+    
+    return folgasData.filter(folga => {
+        const inicio = new Date(folga.data_inicio);
+        const fim = new Date(folga.data_fim);
+        const dataCheck = new Date(dataStr);
+        
+        return dataCheck >= inicio && dataCheck <= fim;
+    });
+}
+
+// Renderizar lista de folgas do mês
+function renderizarListaFolgas() {
+    const lista = document.getElementById('folgas-lista');
+    if (!lista) return;
+    
+    const folgasDoMes = folgasData.filter(folga => {
+        const inicio = new Date(folga.data_inicio);
+        const fim = new Date(folga.data_fim);
+        
+        return (inicio.getMonth() === calendarioMesAtual && inicio.getFullYear() === calendarioAnoAtual) ||
+               (fim.getMonth() === calendarioMesAtual && fim.getFullYear() === calendarioAnoAtual);
+    });
+    
+    if (folgasDoMes.length === 0) {
+        lista.innerHTML = `
+            <div class="empty-state">
+                <span>📅</span>
+                <p>Nenhuma folga registrada para este mês</p>
+            </div>
+        `;
+        return;
+    }
+    
+    lista.innerHTML = folgasDoMes.map(folga => `
+        <div class="folga-item">
+            <div class="folga-item-info">
+                <span class="folga-item-nome">${folga.colaborador_nome || folga.colaborador}</span>
+                <span class="folga-item-datas">📅 ${formatarData(folga.data_inicio)} até ${formatarData(folga.data_fim)}</span>
+            </div>
+            <span class="folga-item-tipo">${getTipoLabel(folga.tipo)}</span>
+            <div class="folga-item-status">
+                <span class="status-badge ${folga.status}">${getStatusLabel(folga.status)}</span>
+            </div>
+            <div class="folga-item-acoes">
+                <button class="btn-editar" onclick="editarFolga('${folga.id}')">✏️ Editar</button>
+                <button class="btn-excluir" onclick="excluirFolga('${folga.id}')">🗑️ Excluir</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Formatar data para exibição
+function formatarData(dataStr) {
+    const data = new Date(dataStr + 'T00:00:00');
+    return data.toLocaleDateString('pt-BR');
+}
+
+// Obter label do tipo de folga
+function getTipoLabel(tipo) {
+    const tipos = {
+        'folga': '🏖️ Folga',
+        'ferias': '✈️ Férias',
+        'licenca': '📋 Licença',
+        'compensacao': '⏰ Compensação',
+        'abono': '📝 Abono'
+    };
+    return tipos[tipo] || tipo;
+}
+
+// Obter label do status
+function getStatusLabel(status) {
+    const statuses = {
+        'aprovada': '✅ Aprovada',
+        'pendente': '⏳ Pendente',
+        'recusada': '❌ Recusada'
+    };
+    return statuses[status] || status;
+}
+
+// Navegação do calendário
+function mesAnterior() {
+    calendarioMesAtual--;
+    if (calendarioMesAtual < 0) {
+        calendarioMesAtual = 11;
+        calendarioAnoAtual--;
+    }
+    renderizarCalendario();
+}
+
+function proximoMes() {
+    calendarioMesAtual++;
+    if (calendarioMesAtual > 11) {
+        calendarioMesAtual = 0;
+        calendarioAnoAtual++;
+    }
+    renderizarCalendario();
+}
+
+function irParaHoje() {
+    const hoje = new Date();
+    calendarioMesAtual = hoje.getMonth();
+    calendarioAnoAtual = hoje.getFullYear();
+    renderizarCalendario();
+}
+
+// Recarregar dados de folgas (útil para atualização manual)
+async function recarregarFolgas() {
+    await carregarFolgas();
+    renderizarCalendario();
+    atualizarBadgeFolgas();
+    showToast('Dados de folgas atualizados!', 'success');
+}
+
+// Verificar conflito entre folga e viagens agendadas
+function verificarConflitoComViagens(colaboradorNome, dataInicioFolga, dataFimFolga) {
+    // Normalizar nome do colaborador para comparação
+    const nomeNormalizado = colaboradorNome.toLowerCase().trim();
+    
+    // Filtrar viagens ativas (agendadas ou em andamento)
+    const viagensAtivas = viagensData.filter(v => 
+        v.status === 'AGENDADA' || v.status === 'EM_ANDAMENTO'
+    );
+    
+    // Converter datas da folga
+    const inicioFolga = new Date(dataInicioFolga + 'T00:00:00');
+    const fimFolga = new Date(dataFimFolga + 'T23:59:59');
+    
+    // Verificar cada viagem
+    for (const viagem of viagensAtivas) {
+        // Verificar se o responsável da viagem corresponde ao colaborador
+        const responsavelNormalizado = (viagem.responsavel || '').toLowerCase().trim();
+        
+        // Verificar se o nome do colaborador está contido no responsável ou vice-versa
+        const nomeMatch = responsavelNormalizado.includes(nomeNormalizado) || 
+                          nomeNormalizado.includes(responsavelNormalizado) ||
+                          verificarNomeSimilar(nomeNormalizado, responsavelNormalizado);
+        
+        if (nomeMatch) {
+            // Converter datas da viagem
+            const inicioViagem = new Date(viagem.data_ida + 'T00:00:00');
+            const fimViagem = new Date(viagem.data_volta + 'T23:59:59');
+            
+            // Verificar sobreposição de datas
+            // Há conflito se: inicioFolga <= fimViagem E fimFolga >= inicioViagem
+            if (inicioFolga <= fimViagem && fimFolga >= inicioViagem) {
+                return {
+                    conflito: true,
+                    viagem: viagem,
+                    mensagem: `Existe uma viagem agendada para ${viagem.responsavel}:\n` +
+                              `📍 Destino: ${viagem.destino}\n` +
+                              `📅 Período: ${viagem.data_ida_formatada || formatarData(viagem.data_ida)} até ${viagem.data_volta_formatada || formatarData(viagem.data_volta)}\n` +
+                              `✈️ Status: ${viagem.status}`
+                };
+            }
+        }
+    }
+    
+    return null; // Sem conflito
+}
+
+// Verificar se dois nomes são similares (primeiro e último nome)
+function verificarNomeSimilar(nome1, nome2) {
+    const partes1 = nome1.split(' ').filter(p => p.length > 2);
+    const partes2 = nome2.split(' ').filter(p => p.length > 2);
+    
+    // Verificar se primeiro nome coincide
+    if (partes1[0] && partes2[0] && partes1[0] === partes2[0]) {
+        return true;
+    }
+    
+    // Verificar se algum nome coincide
+    for (const parte of partes1) {
+        if (partes2.includes(parte)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Modal de folga
+function abrirModalFolga() {
+    const modal = document.getElementById('modalFolga');
+    const titulo = document.getElementById('modalFolgaTitulo');
+    const form = document.getElementById('formFolga');
+    
+    if (!modal) return;
+    
+    titulo.textContent = '➕ Nova Folga';
+    form.reset();
+    document.getElementById('folgaId').value = '';
+    
+    // Definir datas padrão
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('folgaDataInicio').value = hoje;
+    document.getElementById('folgaDataFim').value = hoje;
+    
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function fecharModalFolga() {
+    const modal = document.getElementById('modalFolga');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+}
+
+function editarFolga(id) {
+    const folga = folgasData.find(f => String(f.id) === String(id));
+    if (!folga) {
+        console.error('Folga não encontrada:', id);
+        return;
+    }
+    
+    const modal = document.getElementById('modalFolga');
+    const titulo = document.getElementById('modalFolgaTitulo');
+    
+    titulo.textContent = '✏️ Editar Folga';
+    
+    document.getElementById('folgaId').value = folga.id;
+    document.getElementById('folgaColaborador').value = folga.colaborador;
+    document.getElementById('folgaDataInicio').value = folga.data_inicio;
+    document.getElementById('folgaDataFim').value = folga.data_fim;
+    document.getElementById('folgaTipo').value = folga.tipo;
+    document.getElementById('folgaStatus').value = folga.status;
+    document.getElementById('folgaObservacao').value = folga.observacao || '';
+    
+    modal.classList.add('active');;
+    modal.style.display = 'flex';
+}
+
+async function salvarFolga(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('folgaId').value;
+    const colaboradorSelect = document.getElementById('folgaColaborador');
+    const colaborador = colaboradorSelect.value;
+    const colaborador_nome = colaboradorSelect.options[colaboradorSelect.selectedIndex].text;
+    const data_inicio = document.getElementById('folgaDataInicio').value;
+    const data_fim = document.getElementById('folgaDataFim').value;
+    const tipo = document.getElementById('folgaTipo').value;
+    const status = document.getElementById('folgaStatus').value;
+    const observacao = document.getElementById('folgaObservacao').value;
+    
+    // Validações
+    if (!colaborador || !data_inicio || !data_fim || !tipo) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+    }
+    
+    if (new Date(data_fim) < new Date(data_inicio)) {
+        alert('A data final não pode ser anterior à data inicial.');
+        return;
+    }
+    
+    // Verificar conflito com viagens agendadas
+    const conflitoViagem = verificarConflitoComViagens(colaborador_nome, data_inicio, data_fim);
+    if (conflitoViagem) {
+        alert(`⚠️ Não é possível escolher esta data para folga!\n\n${conflitoViagem.mensagem}`);
+        return;
+    }
+    
+    const folgaData = {
+        colaborador_codigo: colaborador,
+        colaborador_nome,
+        data_inicio,
+        data_fim,
+        tipo,
+        status,
+        observacao,
+        criado_por: window.currentUser?.nome || 'Sistema'
+    };
+    
+    try {
+        let response;
+        let msg;
+        
+        if (id && !id.startsWith('folga_')) {
+            // Editar existente (no banco)
+            folgaData.id = id;
+            response = await fetch('api/get_folgas.php', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(folgaData)
+            });
+            msg = 'Folga atualizada com sucesso!';
+        } else {
+            // Adicionar nova
+            response = await fetch('api/get_folgas.php?action=criar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(folgaData)
+            });
+            msg = 'Folga cadastrada com sucesso!';
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await carregarFolgas();
+            salvarFolgasStorage();
+            fecharModalFolga();
+            renderizarCalendario();
+            showToast(msg, 'success');
+        } else {
+            showToast('Erro: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao salvar folga:', error);
+        
+        // Fallback: salvar localmente
+        const localData = {
+            id: id || 'folga_' + Date.now(),
+            colaborador,
+            colaborador_nome,
+            data_inicio,
+            data_fim,
+            tipo,
+            status,
+            observacao,
+            criado_em: new Date().toISOString()
+        };
+        
+        if (id) {
+            const index = folgasData.findIndex(f => f.id == id);
+            if (index !== -1) {
+                folgasData[index] = { ...folgasData[index], ...localData };
+            }
+        } else {
+            folgasData.push(localData);
+        }
+        
+        salvarFolgasStorage();
+        fecharModalFolga();
+        renderizarCalendario();
+        showToast('Folga salva localmente (sem conexão)', 'info');
+    }
+}
+
+async function excluirFolga(id) {
+    if (!confirm('Tem certeza que deseja excluir esta folga?')) return;
+    
+    try {
+        if (!id.toString().startsWith('folga_')) {
+            // Excluir do banco
+            const response = await fetch(`api/get_folgas.php?id=${id}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                showToast('Erro: ' + result.error, 'error');
+                return;
+            }
+        }
+        
+        folgasData = folgasData.filter(f => f.id != id);
+        salvarFolgasStorage();
+        renderizarCalendario();
+        showToast('Folga excluída com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro ao excluir folga:', error);
+        folgasData = folgasData.filter(f => f.id != id);
+        salvarFolgasStorage();
+        renderizarCalendario();
+        showToast('Folga excluída localmente', 'info');
+    }
+}
+
+// Toast notification simples
+function showToast(message, type = 'info') {
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10001;
+        animation: slideIn 0.3s ease;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Adicionar estilos de animação para toast
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(toastStyles);
+
+// Inicializar calendário quando a aba de folgas for exibida
+document.addEventListener('DOMContentLoaded', function() {
+    // Observer para detectar quando a aba de folgas é ativada
+    const folgasTab = document.getElementById('folgas');
+    if (folgasTab) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class' && folgasTab.classList.contains('active')) {
+                    initCalendarioFolgas();
+                }
+            });
+        });
+        
+        observer.observe(folgasTab, { attributes: true });
+    }
+    
+    // Também inicializar se já estiver na aba
+    if (folgasTab && folgasTab.classList.contains('active')) {
+        initCalendarioFolgas();
+    }
+});
+

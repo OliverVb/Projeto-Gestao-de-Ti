@@ -1118,14 +1118,32 @@ html {
         width: 280px;
         max-width: 80vw;
         height: 100vh;
+        max-height: 100vh;
         z-index: 9999;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     
     .sidebar.open {
         transform: translateX(0);
+    }
+    
+    /* Nav Menu Mobile - Scrollable */
+    .sidebar .nav-menu {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 100px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Logo Section Mobile */
+    .sidebar .logo-section {
+        flex-shrink: 0;
     }
     
     /* Main Content Mobile */
@@ -1725,6 +1743,55 @@ html {
     border-left: 4px solid #e67e22;
 }
 
+/* Seção de título para responsáveis */
+.summary-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 24px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+}
+
+/* Cards de responsáveis */
+.summary-responsaveis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.summary-responsavel {
+    border-left: 4px solid #3498db;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 16px;
+}
+
+.summary-responsavel .summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.summary-value-nome {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.summary-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.summary-value-money {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #28a745;
+    margin-top: 4px;
+}
+
 /* Destaque para dias */
 .dias-destaque {
     font-weight: 700;
@@ -1853,6 +1920,25 @@ tr.status-pendente {
     color: white;
 }
 
+/* Gradient 8 para escala de folgas */
+.gradient-8 {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+}
+
+.gradient-8 .stat-icon {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.gradient-8 .stat-info h3,
+.gradient-8 .stat-info p {
+    color: white;
+}
+
+.stat-card.gradient-8::before {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.3) 0%, rgba(142, 68, 173, 0.3) 100%);
+}
+
 /* Responsivo - Viagens */
 @media (max-width: 768px) {
     .viagens-summary .summary-cards {
@@ -1861,6 +1947,15 @@ tr.status-pendente {
     
     .viagens-summary .summary-card {
         min-width: 100%;
+    }
+    
+    .summary-responsaveis {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-section-title {
+        font-size: 1rem;
+        margin: 16px 0 12px 0;
     }
     
     .modal-header-custom {
@@ -2016,4 +2111,679 @@ tr.status-pendente {
 /* Esconde o select nativo quando o dropdown customizado está ativo */
 .filter-select.hidden-select {
     display: none !important;
+}
+/* =============================================
+   CHECKLIST STYLES
+   ============================================= */
+
+.checklist-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.checklist-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+}
+
+.checklist-header h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btn-checklist-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ef5350, #e53935);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-checklist-reset:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
+}
+
+.checklist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.checklist-item:hover {
+    background: var(--bg-hover, rgba(74, 144, 226, 0.1));
+    border-color: var(--primary);
+}
+
+.checklist-item.checked {
+    background: rgba(46, 125, 50, 0.15);
+    border-color: #2e7d32;
+}
+
+.checklist-checkbox {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #2e7d32;
+}
+
+.checklist-text {
+    flex: 1;
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.checklist-text small {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.checklist-item.checked .checklist-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.checklist-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border);
+}
+
+.checklist-progress {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.checklist-progress-bar {
+    width: 100%;
+    height: 12px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.checklist-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #2e7d32);
+    border-radius: 6px;
+    transition: width 0.4s ease;
+}
+
+/* Responsivo */
+@media (max-width: 600px) {
+    .checklist-container {
+        padding: 10px;
+    }
+    
+    .checklist-card {
+        padding: 16px;
+    }
+    
+    .checklist-header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    
+    .checklist-item {
+        padding: 12px;
+    }
+    
+    .checklist-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* ====================== CALENDÁRIO DE FOLGAS ====================== */
+.folgas-container {
+    padding: 20px;
+}
+
+.calendario-controles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.calendario-controles h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 220px;
+    text-align: center;
+}
+
+.btn-calendario {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-calendario:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.btn-calendario.btn-hoje {
+    background: var(--success);
+}
+
+.btn-calendario.btn-hoje:hover {
+    background: #047857;
+}
+
+/* Legenda do Calendário */
+.calendario-legenda {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.legenda-cor {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.legenda-cor.folga-aprovada {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.legenda-cor.folga-pendente {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.legenda-cor.folga-recusada {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* Grid do Calendário */
+.calendario-wrapper {
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.calendario-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--primary);
+    color: white;
+}
+
+.calendario-dia-semana {
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--border);
+}
+
+.calendario-dia {
+    background: var(--bg-card);
+    min-height: 100px;
+    padding: 8px;
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.calendario-dia:hover {
+    background: var(--bg-primary);
+}
+
+.calendario-dia.outro-mes {
+    background: var(--bg-primary);
+    opacity: 0.5;
+}
+
+.calendario-dia.hoje {
+    background: rgba(0, 102, 204, 0.1);
+    border: 2px solid var(--primary);
+}
+
+.calendario-dia-numero {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.calendario-dia.domingo .calendario-dia-numero {
+    color: var(--danger);
+}
+
+.calendario-dia.sabado .calendario-dia-numero {
+    color: var(--primary);
+}
+
+/* Eventos de Folga no Calendário */
+.folga-evento {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    color: white;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: transform 0.2s ease;
+}
+
+.folga-evento:hover {
+    transform: scale(1.02);
+}
+
+.folga-evento.aprovada {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.folga-evento.pendente {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.folga-evento.recusada {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* Lista de Folgas */
+.folgas-lista-container {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+}
+
+.folgas-lista-container h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.folgas-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.folga-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.folga-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.folga-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.folga-item-nome {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.folga-item-datas {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.folga-item-tipo {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--primary);
+    color: white;
+    font-weight: 500;
+}
+
+.folga-item-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-badge.aprovada {
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+}
+
+.status-badge.pendente {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+
+.status-badge.recusada {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+.folga-item-acoes {
+    display: flex;
+    gap: 8px;
+}
+
+.folga-item-acoes button {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.folga-item-acoes .btn-editar {
+    background: var(--primary);
+    color: white;
+}
+
+.folga-item-acoes .btn-editar:hover {
+    background: var(--primary-dark);
+}
+
+.folga-item-acoes .btn-excluir {
+    background: var(--danger);
+    color: white;
+}
+
+.folga-item-acoes .btn-excluir:hover {
+    background: #b91c1c;
+}
+
+/* Modal de Folga */
+.modal-folga {
+    max-width: 500px;
+}
+
+.modal-folga .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.modal-folga .form-group {
+    margin-bottom: 16px;
+}
+
+.modal-folga .form-group label {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.modal-folga .form-group input,
+.modal-folga .form-group select,
+.modal-folga .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+.modal-folga .form-group input:focus,
+.modal-folga .form-group select:focus,
+.modal-folga .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.modal-folga .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.modal-folga .btn-cancelar {
+    padding: 10px 20px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-folga .btn-cancelar:hover {
+    background: var(--border);
+}
+
+.modal-folga .btn-salvar {
+    padding: 10px 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-folga .btn-salvar:hover {
+    background: var(--primary-dark);
+}
+
+/* Responsivo Calendário */
+@media (max-width: 768px) {
+    .calendario-dia {
+        min-height: 70px;
+        padding: 4px;
+    }
+    
+    .calendario-dia-numero {
+        font-size: 0.8rem;
+    }
+    
+    .folga-evento {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+    
+    .calendario-dia-semana {
+        font-size: 0.7rem;
+        padding: 8px 4px;
+    }
+    
+    .calendario-controles h3 {
+        font-size: 1.1rem;
+        min-width: auto;
+    }
+    
+    .modal-folga .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .folga-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendario-dia {
+        min-height: 50px;
+    }
+    
+    .folga-evento {
+        display: none;
+    }
+    
+    .calendario-dia.tem-folga::after {
+        content: '';
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--primary);
+    }
+}
+
+/* ========================================
+   RODAPÉ DO SISTEMA
+   ======================================== */
+.app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: left 0.3s ease;
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #64748b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: 0.3px;
+}
+
+.footer-text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.footer-text strong {
+    color: #475569;
+    font-weight: 600;
+}
+
+.footer-separator {
+    color: #cbd5e1;
+    font-size: 10px;
+}
+
+.footer-year {
+    color: #94a3b8;
+}
+
+/* Ajuste do main-content para não sobrepor o rodapé */
+.main-content {
+    padding-bottom: 50px !important;
+}
+
+/* Responsivo - sidebar fechada */
+@media (max-width: 900px) {
+    .app-footer {
+        left: 0;
+    }
+}
+
+/* Hover sutil no rodapé */
+.app-footer:hover .footer-text strong {
+    color: #57bd9e;
+    transition: color 0.3s ease;
 }

@@ -225,17 +225,52 @@
             </div>
         `;
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('show');
-            }
-        });
-
         modal.querySelector('.crud-modal-close')?.addEventListener('click', () => {
             modal.classList.remove('show');
         });
 
         document.body.appendChild(modal);
+    }
+
+    // Mapeamento de entidade para variável de dados global
+    function getEntityData(entity) {
+        const dataMap = {
+            ti: () => typeof tiData !== 'undefined' ? tiData : [],
+            impressoras: () => typeof impressorasData !== 'undefined' ? impressorasData : [],
+            internet: () => typeof internetData !== 'undefined' ? internetData : [],
+            equipamentos: () => typeof equipamentosData !== 'undefined' ? equipamentosData : [],
+            emails: () => typeof emailsData !== 'undefined' ? emailsData : [],
+            vigencias: () => typeof vigenciasData !== 'undefined' ? vigenciasData : [],
+            viagens: () => typeof viagensData !== 'undefined' ? viagensData : []
+        };
+        return dataMap[entity] ? dataMap[entity]() : [];
+    }
+
+    // Função para extrair valores únicos de um campo
+    function getUniqueFieldValues(entity, fieldName, dbName) {
+        const data = getEntityData(entity);
+        const values = new Set();
+        data.forEach(item => {
+            // Tenta o nome do campo e também o dbName (nome no banco)
+            const val = item[fieldName] || item[dbName] || '';
+            if (val && String(val).trim()) {
+                values.add(String(val).trim());
+            }
+        });
+        return Array.from(values).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    }
+
+    // Gera o HTML do datalist com opções únicas
+    function buildDatalist(entity, field) {
+        const values = getUniqueFieldValues(entity, field.name, field.dbName);
+        if (values.length === 0) return { datalistId: '', datalistHtml: '' };
+        
+        const datalistId = `datalist_${entity}_${field.name}`;
+        const options = values.map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">`).join('');
+        return {
+            datalistId,
+            datalistHtml: `<datalist id="${datalistId}">${options}</datalist>`
+        };
     }
 
     function buildForm(entity, mode, item) {
@@ -245,6 +280,7 @@
         }
 
         const title = `${mode === 'edit' ? '✏️ Editar' : '➕ Adicionar'} — ${cfg.label}`;
+        let datalistsHtml = '';
 
         const fieldsHtml = cfg.fields.map((field) => {
             const value = item?.[field.name] ?? '';
@@ -255,7 +291,7 @@
                 return `
                     <div class="crud-field" ${colSpan}>
                         <label for="crud_${field.name}">${field.label}</label>
-                        <textarea id="crud_${field.name}" name="${field.name}" ${required}>${String(value ?? '')}</textarea>
+                        <textarea id="crud_${field.name}" name="${field.name}" ${required} spellcheck="true" lang="pt-BR">${String(value ?? '')}</textarea>
                     </div>
                 `;
             }
@@ -278,10 +314,22 @@
 
             const inputType = field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text';
             const safeValue = String(value ?? '').replace(/"/g, '&quot;');
+            const spellcheckAttr = inputType === 'text' ? 'spellcheck="true" lang="pt-BR"' : '';
+            
+            // Adiciona datalist para campos de texto
+            let datalistAttr = '';
+            if (inputType === 'text') {
+                const { datalistId, datalistHtml } = buildDatalist(entity, field);
+                if (datalistId) {
+                    datalistAttr = `list="${datalistId}"`;
+                    datalistsHtml += datalistHtml;
+                }
+            }
+            
             return `
                 <div class="crud-field" ${colSpan}>
                     <label for="crud_${field.name}">${field.label}</label>
-                    <input id="crud_${field.name}" name="${field.name}" type="${inputType}" value="${safeValue}" ${required} />
+                    <input id="crud_${field.name}" name="${field.name}" type="${inputType}" value="${safeValue}" ${required} ${spellcheckAttr} ${datalistAttr} />
                 </div>
             `;
         }).join('');
@@ -292,6 +340,7 @@
             <form id="crudForm" class="${formClass}">
                 ${fieldsHtml}
             </form>
+            ${datalistsHtml}
         `;
 
         const footer = `

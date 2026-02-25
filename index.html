@@ -114,6 +114,20 @@
                     <span class="nav-label">Escala de Viagens</span>
                     <span class="nav-badge" id="nav-badge-viagens">0</span>
                 </button>
+                <button class="nav-item" data-tab="historico-viagens" tabindex="0">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">Histórico de Viagens</span>
+                    <span class="nav-badge" id="nav-badge-historico-viagens">0</span>
+                </button>
+                <button class="nav-item" data-tab="checklist" tabindex="0">
+                    <span class="nav-icon">✅</span>
+                    <span class="nav-label">Checklist</span>
+                </button>
+                <button class="nav-item" data-tab="folgas" tabindex="0">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-label">Escala de Folgas</span>
+                    <span class="nav-badge" id="nav-badge-folgas">0</span>
+                </button>
             </nav>
         </aside>
 
@@ -192,11 +206,18 @@
                                 <p>Vigências Internets</p>
                             </div>
                         </div>
-                        <div class="stat-card gradient-7" id="card-viagens" style="cursor:pointer;">
+                        <div class="stat-card" id="card-viagens" style="cursor:pointer;">
                             <div class="stat-icon">✈️</div>
                             <div class="stat-info">
                                 <h3>0</h3>
                                 <p>Viagens Agendadas</p>
+                            </div>
+                        </div>
+                        <div class="stat-card" id="card-folgas" style="cursor:pointer;">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-info">
+                                <h3 id="count-folgas">0</h3>
+                                <p>Escala de Folgas</p>
                             </div>
                         </div>
                     </div>
@@ -362,7 +383,6 @@
                             <option value="">Todos os Status</option>
                             <option value="AGENDADA">Agendada</option>
                             <option value="EM_ANDAMENTO">Em Andamento</option>
-                            <option value="CONCLUIDA">Concluída</option>
                             <option value="CANCELADA">Cancelada</option>
                         </select>
                         <select class="filter-select" id="viagensDestinoFilter">
@@ -375,8 +395,372 @@
                     <div class="viagens-summary" id="viagensSummary"></div>
                     <div id="viagensContent" class="data-container"></div>
                 </div>
+
+                <!-- Histórico de Viagens Tab -->
+                <div id="historico-viagens" class="tab-content">
+                    <div class="page-header">
+                        <h2>📜 Histórico de Viagens</h2>
+                        <p>Viagens concluídas e finalizadas</p>
+                    </div>
+                    <div class="filters">
+                        <input type="text" class="filter-select" id="historicoViagensSearchFilter" placeholder="Buscar por responsável, destino, motivo..." style="width: 300px;">
+                        <select class="filter-select" id="historicoViagensDestinoFilter">
+                            <option value="">Todos os Destinos</option>
+                        </select>
+                        <button class="btn-export-excel" id="btnExportHistoricoViagens" onclick="exportHistoricoViagensToExcel()" title="Exportar para Excel">
+                            <span>📥</span> Exportar Excel
+                        </button>
+                    </div>
+                    <div class="viagens-summary" id="historicoViagensSummary"></div>
+                    <div id="historicoViagensContent" class="data-container"></div>
+                </div>
+
+                <!-- Checklist Tab -->
+                <div id="checklist" class="tab-content">
+                    <div class="page-header">
+                        <h2>✅ Check-List</h2>
+                        <p>Lista de verificação de equipamentos e materiais</p>
+                    </div>
+                    <div class="checklist-container">
+                        <div class="checklist-card">
+                            <div class="checklist-header">
+                                <h3>📦 Itens para Verificação</h3>
+                                <button class="btn-checklist-reset" onclick="resetChecklist()" title="Limpar todos os itens">
+                                    <span>🔄</span> Resetar
+                                </button>
+                            </div>
+                            <div class="checklist-items">
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="minipc">
+                                    <span class="checklist-text">MINI PC 2 <small>(Conferir a caixa para verificação dos componentes)</small></span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="hdmi">
+                                    <span class="checklist-text">CABO HDMI <small>(Longo e Curto)</small></span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="teclado">
+                                    <span class="checklist-text">TECLADO</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="mouse">
+                                    <span class="checklist-text">MOUSE</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="adaptador-hdmi">
+                                    <span class="checklist-text">ADAPTADOR HDMI/VGA</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="monitor">
+                                    <span class="checklist-text">MONITOR + CHICOTE</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="cabo-vga">
+                                    <span class="checklist-text">CABO VGA</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="switch">
+                                    <span class="checklist-text">SWITCH + CABO FORÇA</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="starlink">
+                                    <span class="checklist-text">STARLINK <small>(Conferir acessórios)</small></span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="impressora">
+                                    <span class="checklist-text">IMPRESSORA + PAPEL</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="transformador">
+                                    <span class="checklist-text">TRANSFORMADOR</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="extensao">
+                                    <span class="checklist-text">EXTENSÃO DE ENERGIA 3</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="totem">
+                                    <span class="checklist-text">TOTEM + PAPEL + CABO DE FORÇA</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="cabo-rede">
+                                    <span class="checklist-text">CABO DE REDE 5 <small>(4 Curtos e 1 Longo)</small></span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="adaptador-tomada">
+                                    <span class="checklist-text">ADAPTADOR DE TOMADA</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="tv">
+                                    <span class="checklist-text">TV + CHICOTE + CONTROLE</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox" data-item="suporte">
+                                    <span class="checklist-text">SUPORTE</span>
+                                </label>
+                            </div>
+                            <div class="checklist-footer">
+                                <div class="checklist-progress">
+                                    <span id="checklist-count">0</span> de <span id="checklist-total">17</span> itens verificados
+                                </div>
+                                <div class="checklist-progress-bar">
+                                    <div class="checklist-progress-fill" id="checklist-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção Evento Goiás Social -->
+                        <div class="checklist-card" style="margin-top: 24px;">
+                            <div class="checklist-header">
+                                <h3>🎪 Evento Goiás Social - Passo a Passo</h3>
+                                <button class="btn-checklist-reset" onclick="resetChecklistEvento()" title="Limpar todos os itens">
+                                    <span>🔄</span> Resetar
+                                </button>
+                            </div>
+                            <div class="checklist-items">
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-01">
+                                    <span class="checklist-text"><strong>01</strong> – Montar e ligar Starlink</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-02">
+                                    <span class="checklist-text"><strong>02</strong> – Aguardar atualização e conexão com satélite</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-03">
+                                    <span class="checklist-text"><strong>03</strong> – Conectar todos os dispositivos no mesmo Switch</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-04">
+                                    <span class="checklist-text"><strong>04</strong> – Dispositivos: Servidor, Totem, TV/Mini PC</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-05">
+                                    <span class="checklist-text"><strong>05</strong> – Aguardar todos receberem IP</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-06">
+                                    <span class="checklist-text"><strong>06</strong> – Ligar Servidor (Mini PC)</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-07">
+                                    <span class="checklist-text"><strong>07</strong> – Verificar se está em Cabo ou Wi-Fi</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-08">
+                                    <span class="checklist-text"><strong>08</strong> – Conferir configuração de rede no VirtualBox</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-09">
+                                    <span class="checklist-text"><strong>09</strong> – Iniciar máquina virtual</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-10">
+                                    <span class="checklist-text"><strong>10</strong> – Selecionar opção 1 no menu da VM</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-11">
+                                    <span class="checklist-text"><strong>11</strong> – Selecionar opção 2 no sistema virtualizado</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-12">
+                                    <span class="checklist-text"><strong>12</strong> – Verificar IP gerado no servidor</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-13">
+                                    <span class="checklist-text"><strong>13</strong> – Setar este IP para todas as URLs de serviço do Totem</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-14">
+                                    <span class="checklist-text"><strong>14</strong> – Ligar Totem de senhas</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-15">
+                                    <span class="checklist-text"><strong>15</strong> – Iniciar impressora térmica</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-16">
+                                    <span class="checklist-text"><strong>16</strong> – Verificar IP local <small>(apenas conferência)</small></span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-17">
+                                    <span class="checklist-text"><strong>17</strong> – Ligar Smart TV ou Mini PC</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-18">
+                                    <span class="checklist-text"><strong>18</strong> – Acessar navegador/aplicação</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-19">
+                                    <span class="checklist-text"><strong>19</strong> – Informar o IP do servidor (VM)</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-20">
+                                    <span class="checklist-text"><strong>20</strong> – Verificar exibição de senhas</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-21">
+                                    <span class="checklist-text"><strong>21</strong> – Configurar usuário de atendimento</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-22">
+                                    <span class="checklist-text"><strong>22</strong> – Sistema conectado ao IP do servidor</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-23">
+                                    <span class="checklist-text"><strong>23</strong> – Testar chamada de senha</span>
+                                </label>
+                                <label class="checklist-item">
+                                    <input type="checkbox" class="checklist-checkbox-evento" data-item="evt-24">
+                                    <span class="checklist-text"><strong>24</strong> – Teste final <small>(Totem gera senha, Impressora imprime, Atendimento chama, TV exibe)</small></span>
+                                </label>
+                            </div>
+                            <div class="checklist-footer">
+                                <div class="checklist-progress">
+                                    <span id="checklist-count-evento">0</span> de <span id="checklist-total-evento">24</span> passos concluídos
+                                </div>
+                                <div class="checklist-progress-bar">
+                                    <div class="checklist-progress-fill" id="checklist-progress-fill-evento"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Escala de Folgas Tab -->
+                <div id="folgas" class="tab-content">
+                    <div class="page-header">
+                        <h2>📅 Escala de Folgas</h2>
+                        <p>Calendário inteligente para gerenciamento de folgas dos colaboradores</p>
+                    </div>
+                    
+                    <div class="crud-toolbar">
+                        <button class="crud-btn btn-add" onclick="abrirModalFolga()">
+                            <span>➕</span> Nova Folga
+                        </button>
+                        <button class="crud-btn btn-refresh" onclick="recarregarFolgas()" style="background: var(--info);">
+                            <span>🔄</span> Atualizar
+                        </button>
+                    </div>
+
+                    <div class="folgas-container">
+                        <!-- Controles do Calendário -->
+                        <div class="calendario-controles">
+                            <button class="btn-calendario" onclick="mesAnterior()">
+                                <span>◀</span>
+                            </button>
+                            <h3 id="calendario-mes-ano">Fevereiro 2026</h3>
+                            <button class="btn-calendario" onclick="proximoMes()">
+                                <span>▶</span>
+                            </button>
+                            <button class="btn-calendario btn-hoje" onclick="irParaHoje()">
+                                <span>📍</span> Hoje
+                            </button>
+                        </div>
+
+                        <!-- Legenda -->
+                        <div class="calendario-legenda">
+                            <div class="legenda-item">
+                                <span class="legenda-cor folga-aprovada"></span>
+                                <span>Folga Aprovada</span>
+                            </div>
+                            <div class="legenda-item">
+                                <span class="legenda-cor folga-pendente"></span>
+                                <span>Pendente</span>
+                            </div>
+                            <div class="legenda-item">
+                                <span class="legenda-cor folga-recusada"></span>
+                                <span>Recusada</span>
+                            </div>
+                        </div>
+
+                        <!-- Calendário -->
+                        <div class="calendario-wrapper">
+                            <div class="calendario-header">
+                                <div class="calendario-dia-semana">Dom</div>
+                                <div class="calendario-dia-semana">Seg</div>
+                                <div class="calendario-dia-semana">Ter</div>
+                                <div class="calendario-dia-semana">Qua</div>
+                                <div class="calendario-dia-semana">Qui</div>
+                                <div class="calendario-dia-semana">Sex</div>
+                                <div class="calendario-dia-semana">Sáb</div>
+                            </div>
+                            <div class="calendario-grid" id="calendario-grid">
+                                <!-- Dias serão gerados via JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Lista de Folgas do Mês -->
+                        <div class="folgas-lista-container">
+                            <h3>📋 Folgas do Mês</h3>
+                            <div id="folgas-lista" class="folgas-lista">
+                                <!-- Lista será populada via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
+    </div>
+
+    <!-- Modal de Folga -->
+    <div id="modalFolga" class="modal">
+        <div class="modal-content modal-folga">
+            <div class="modal-header">
+                <h3 id="modalFolgaTitulo">➕ Nova Folga</h3>
+                <button class="modal-close" onclick="fecharModalFolga()">&times;</button>
+            </div>
+            <form id="formFolga" onsubmit="salvarFolga(event)">
+                <input type="hidden" id="folgaId">
+                <div class="form-group">
+                    <label for="folgaColaborador">👤 Colaborador</label>
+                    <select id="folgaColaborador" required>
+                        <option value="">Selecione o colaborador...</option>
+                        <option value="fabricio_lima">Fabricio Lima Cabral</option>
+                        <option value="fabricio_alves">Fabricio Alves de Oliveira</option>
+                        <option value="roberto_sergio">Roberto Sergio Jaldin Beckmann</option>
+                        <option value="roberto_rondinei">Roberto Rondinei Silva de Lima</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="folgaDataInicio">📅 Data Início</label>
+                        <input type="date" id="folgaDataInicio" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="folgaDataFim">📅 Data Fim</label>
+                        <input type="date" id="folgaDataFim" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="folgaTipo">📌 Tipo de Folga</label>
+                    <select id="folgaTipo" required>
+                        <option value="">Selecione o tipo...</option>
+                        <option value="folga">Folga</option>
+                        <option value="ferias">Férias</option>
+                        <option value="licenca">Licença</option>
+                        <option value="compensacao">Compensação</option>
+                        <option value="abono">Abono</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="folgaStatus">📊 Status</label>
+                    <select id="folgaStatus" required>
+                        <option value="pendente">Pendente</option>
+                        <option value="aprovada">Aprovada</option>
+                        <option value="recusada">Recusada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="folgaObservacao">📝 Observação</label>
+                    <textarea id="folgaObservacao" rows="3" placeholder="Observações adicionais..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharModalFolga()">Cancelar</button>
+                    <button type="submit" class="btn-salvar">💾 Salvar</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal de Detalhes -->
@@ -386,6 +770,15 @@
             <div id="modalBody"></div>
         </div>
     </div>
+
+    <!-- Rodapé -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span class="footer-text">Desenvolvido por <strong>Fabricio Oliveira</strong></span>
+            <span class="footer-separator">•</span>
+            <span class="footer-year">© 2026</span>
+        </div>
+    </footer>
 
     <!-- Scripts -->
     <!-- NÃO MAIS NECESSÁRIO: data.js foi substituído por APIs PHP -->
@@ -419,7 +812,168 @@
         if(cardVigencias) cardVigencias.addEventListener('click', function() { window.switchTab ? switchTab('vigencias') : document.querySelector('[data-tab="vigencias"]').click(); });
         var cardViagens = document.getElementById('card-viagens');
         if(cardViagens) cardViagens.addEventListener('click', function() { window.switchTab ? switchTab('viagens') : document.querySelector('[data-tab="viagens"]').click(); });
+        
+        // ========== CHECKLIST FUNCTIONS ==========
+        initChecklist();
     });
+    
+    // Inicializa o checklist
+    function initChecklist() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox');
+        const savedState = JSON.parse(localStorage.getItem('sgdti_checklist') || '{}');
+        
+        checkboxes.forEach(function(checkbox) {
+            const item = checkbox.getAttribute('data-item');
+            
+            // Restaurar estado salvo
+            if (savedState[item]) {
+                checkbox.checked = true;
+                checkbox.closest('.checklist-item').classList.add('checked');
+            }
+            
+            // Evento de mudança
+            checkbox.addEventListener('change', function() {
+                const parent = this.closest('.checklist-item');
+                if (this.checked) {
+                    parent.classList.add('checked');
+                } else {
+                    parent.classList.remove('checked');
+                }
+                saveChecklistState();
+                updateChecklistProgress();
+            });
+        });
+        
+        updateChecklistProgress();
+    }
+    
+    // Salva o estado do checklist no localStorage
+    function saveChecklistState() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox');
+        const state = {};
+        
+        checkboxes.forEach(function(checkbox) {
+            const item = checkbox.getAttribute('data-item');
+            state[item] = checkbox.checked;
+        });
+        
+        localStorage.setItem('sgdti_checklist', JSON.stringify(state));
+    }
+    
+    // Atualiza a barra de progresso
+    function updateChecklistProgress() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox');
+        const total = checkboxes.length;
+        let checked = 0;
+        
+        checkboxes.forEach(function(checkbox) {
+            if (checkbox.checked) checked++;
+        });
+        
+        const countEl = document.getElementById('checklist-count');
+        const totalEl = document.getElementById('checklist-total');
+        const progressFill = document.getElementById('checklist-progress-fill');
+        
+        if (countEl) countEl.textContent = checked;
+        if (totalEl) totalEl.textContent = total;
+        if (progressFill) {
+            const percentage = total > 0 ? (checked / total) * 100 : 0;
+            progressFill.style.width = percentage + '%';
+        }
+    }
+    
+    // Reseta o checklist
+    function resetChecklist() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox');
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = false;
+            checkbox.closest('.checklist-item').classList.remove('checked');
+        });
+        
+        localStorage.removeItem('sgdti_checklist');
+        updateChecklistProgress();
+    }
+    
+    // ========== CHECKLIST EVENTO GOIÁS SOCIAL ==========
+    
+    // Inicializa o checklist do evento (chamado dentro de initChecklist)
+    (function initChecklistEvento() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox-evento');
+        const savedState = JSON.parse(localStorage.getItem('sgdti_checklist_evento') || '{}');
+        
+        checkboxes.forEach(function(checkbox) {
+            const item = checkbox.getAttribute('data-item');
+            
+            // Restaurar estado salvo
+            if (savedState[item]) {
+                checkbox.checked = true;
+                checkbox.closest('.checklist-item').classList.add('checked');
+            }
+            
+            // Evento de mudança
+            checkbox.addEventListener('change', function() {
+                const parent = this.closest('.checklist-item');
+                if (this.checked) {
+                    parent.classList.add('checked');
+                } else {
+                    parent.classList.remove('checked');
+                }
+                saveChecklistStateEvento();
+                updateChecklistProgressEvento();
+            });
+        });
+        
+        updateChecklistProgressEvento();
+    })();
+    
+    // Salva o estado do checklist do evento
+    function saveChecklistStateEvento() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox-evento');
+        const state = {};
+        
+        checkboxes.forEach(function(checkbox) {
+            const item = checkbox.getAttribute('data-item');
+            state[item] = checkbox.checked;
+        });
+        
+        localStorage.setItem('sgdti_checklist_evento', JSON.stringify(state));
+    }
+    
+    // Atualiza a barra de progresso do evento
+    function updateChecklistProgressEvento() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox-evento');
+        const total = checkboxes.length;
+        let checked = 0;
+        
+        checkboxes.forEach(function(checkbox) {
+            if (checkbox.checked) checked++;
+        });
+        
+        const countEl = document.getElementById('checklist-count-evento');
+        const totalEl = document.getElementById('checklist-total-evento');
+        const progressFill = document.getElementById('checklist-progress-fill-evento');
+        
+        if (countEl) countEl.textContent = checked;
+        if (totalEl) totalEl.textContent = total;
+        if (progressFill) {
+            const percentage = total > 0 ? (checked / total) * 100 : 0;
+            progressFill.style.width = percentage + '%';
+        }
+    }
+    
+    // Reseta o checklist do evento
+    function resetChecklistEvento() {
+        const checkboxes = document.querySelectorAll('.checklist-checkbox-evento');
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = false;
+            checkbox.closest('.checklist-item').classList.remove('checked');
+        });
+        
+        localStorage.removeItem('sgdti_checklist_evento');
+        updateChecklistProgressEvento();
+    }
     </script>
 </body>
 </html>
